@@ -236,6 +236,8 @@ public:
                IntrusiveRefCntPtr<vfs::FileSystem> *UsedFS = nullptr);
   /// Get definition of symbol at a specified \p Line and \p Column in \p File.
   Tagged<std::vector<Location>> findDefinitions(PathRef File, Position Pos);
+  /// Get references to symbol at a specified \p Line and \p Column in \p File.
+  Tagged<std::vector<Location>> findReferences(PathRef File, Position Pos, bool IncludeDefinition);
 
   /// Run formatting for \p Rng inside \p File.
   std::vector<tooling::Replacement> formatRange(PathRef File, Range Rng);

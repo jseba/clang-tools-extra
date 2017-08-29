@@ -131,6 +131,25 @@ private:
   ProtocolCallbacks &Callbacks;
 };
 
+struct TextDocumentReferencesHandler : Handler {
+  TextDocumentReferencesHandler(JSONOutput &Output,
+                                ProtocolCallbacks &Callbacks)
+      : Handler(Output), Callbacks(Callbacks) {}
+
+  void handleMethod(llvm::yaml::MappingNode *Params, StringRef ID) override {
+    auto DRP = DocumentReferenceParams::parse(Params);
+    if (!DRP) {
+      Output.log("Failed to decode DocumentReferenceParams!\n");
+      return;
+    }
+
+    Callbacks.onDocumentReferences(*DRP, ID, Output);
+  }
+
+private:
+  ProtocolCallbacks &Callbacks;
+};
+
 struct TextDocumentFormattingHandler : Handler {
   TextDocumentFormattingHandler(JSONOutput &Output,
                                 ProtocolCallbacks &Callbacks)
@@ -240,4 +259,7 @@ void clangd::regiterCallbackHandlers(JSONRPCDispatcher &Dispatcher,
   Dispatcher.registerHandler(
       "textDocument/definition",
       llvm::make_unique<GotoDefinitionHandler>(Out, Callbacks));
+  Dispatcher.registerHandler(
+      "textDocument/references",
+      llvm::make_unique<TextDocumentReferencesHandler>(Out, Callbacks));
 }

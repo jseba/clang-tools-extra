@@ -258,6 +258,9 @@ codeComplete(PathRef FileName, tooling::CompileCommand Command,
 /// Get definition of symbol at a specified \p Pos.
 std::vector<Location> findDefinitions(ParsedAST &AST, Position Pos);
 
+/// Get references to symbol at a specified \p Pos.
+std::vector<Location> findReferences(ParsedAST &AST, Position Pos/*, IncludeDefinition*/);
+
 /// For testing/debugging purposes. Note that this method deserializes all
 /// unserialized Decls, so use with care.
 void dumpAST(ParsedAST &AST, llvm::raw_ostream &OS);

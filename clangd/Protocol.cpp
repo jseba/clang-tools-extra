@@ -167,6 +167,45 @@ std::string Location::unparse(const Location &P) {
   return Result;
 }
 
+llvm::Optional<ReferenceContext>
+ReferenceContext::parse(llvm::yaml::MappingNode *Params) {
+  ReferenceContext Result;
+  for (auto &NextKeyValue : *Params) {
+    auto *KeyString = dyn_cast<llvm::yaml::ScalarNode>(NextKeyValue.getKey());
+    if (!KeyString)
+      return llvm::None;
+
+    llvm::SmallString<20> KeyStorage;
+    StringRef KeyValue = KeyString->getValue(KeyStorage);
+    auto *Value =
+        dyn_cast_or_null<llvm::yaml::ScalarNode>(NextKeyValue.getValue());
+    if (!Value)
+      return llvm::None;
+
+    llvm::SmallString<10> Storage;
+    StringRef Str = Value->getValue(Storage);
+    if (KeyValue == "includeDeclaration") {
+      if (Str == "true")
+        Result.includeDeclaration = true;
+      else if (Str == "false")
+        Result.includeDeclaration = false;
+      else
+        return llvm::None;
+    }
+    else {
+      return llvm::None;
+    }
+  }
+  return Result;
+}
+
+std::string ReferenceContext::unparse(const ReferenceContext &P) {
+  std::string Result;
+  llvm::raw_string_ostream(Result) << llvm::format(
+    R"({"includeDeclaration: %d"})", P.includeDeclaration);
+  return Result;
+}
+
 llvm::Optional<TextDocumentItem>
 TextDocumentItem::parse(llvm::yaml::MappingNode *Params) {
   TextDocumentItem Result;
@@ -743,3 +782,42 @@ std::string CompletionItem::unparse(const CompletionItem &CI) {
   Result.back() = '}';
   return Result;
 }
+
+llvm::Optional<DocumentReferenceParams>
+DocumentReferenceParams::parse(llvm::yaml::MappingNode *Params) {
+  DocumentReferenceParams Result;
+  for (auto &NextKeyValue : *Params) {
+    auto *KeyString = dyn_cast<llvm::yaml::ScalarNode>(NextKeyValue.getKey());
+    if (!KeyString)
+      return llvm::None;
+
+    llvm::SmallString<10> KeyStorage;
+    StringRef KeyValue = KeyString->getValue(KeyStorage);
+    auto *Value =
+        dyn_cast_or_null<llvm::yaml::MappingNode>(NextKeyValue.getValue());
+    if (!Value)
+      continue;
+
+    llvm::SmallString<10> Storage;
+    if (KeyValue == "textDocument") {
+      auto Parsed = TextDocumentIdentifier::parse(Value);
+      if (!Parsed)
+        return llvm::None;
+      Result.textDocument = std::move(*Parsed);
+    } else if (KeyValue == "position") {
+      auto Parsed = Position::parse(Value);
+      if (!Parsed)
+        return llvm::None;
+      Result.position = std::move(*Parsed);
+    } else if (KeyValue == "context") {
+      auto Parsed = ReferenceContext::parse(Value);
+      if (!Parsed)
+        return llvm::None;
+      Result.context = std::move(*Parsed);
+    } else {
+      return llvm::None;
+    }
+  }
+  return Result;
+}
+

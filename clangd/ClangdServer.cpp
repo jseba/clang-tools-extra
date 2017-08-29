@@ -285,6 +285,27 @@ Tagged<std::vector<Location>> ClangdServer::findDefinitions(PathRef File,
   return make_tagged(std::move(Result), TaggedFS.Tag);
 }
 
+Tagged<std::vector<Location>> ClangdServer::findReferences(PathRef File,
+                                                           Position Pos,
+                                                           bool IncludeDefinition) {
+  auto FileContents = DraftMgr.getDraft(File);
+  assert(FileContents.Draft &&
+         "findReferences is called for non-added document");
+
+  auto TaggedFS = FSProvider.getTaggedFileSystem(File);
+
+  std::shared_ptr<CppFile> Resources = Units.getFile(File);
+  assert(Resources && "Calling findReferences on non-added file");
+
+  std::vector<Location> Result;
+  Resources->getAST().get()->runUnderLock([Pos, &Result](ParsedAST *AST) {
+    if (!AST)
+      return;
+    Result = clangd::findReferences(*AST, Pos/*, IncludeDefinition*/);
+  });
+  return make_tagged(std::move(Result), TaggedFS.Tag);
+}
+
 std::future<void> ClangdServer::scheduleReparseAndDiags(
     PathRef File, VersionedDraft Contents, std::shared_ptr<CppFile> Resources,
     Tagged<IntrusiveRefCntPtr<vfs::FileSystem>> TaggedFS) {

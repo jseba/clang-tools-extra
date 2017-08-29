@@ -118,6 +118,14 @@ struct Location {
   static std::string unparse(const Location &P);
 };
 
+struct ReferenceContext {
+  /// Include the declaration of the current symbol.
+  bool includeDeclaration;
+
+  static llvm::Optional<ReferenceContext> parse(llvm::yaml::MappingNode *Params);
+  static std::string unparse(const ReferenceContext &P);
+};
+
 struct Metadata {
   std::vector<std::string> extraFlags;
 
@@ -398,6 +406,12 @@ struct CompletionItem {
   // data?: any - A data entry field that is preserved on a completion item
   //              between a completion and a completion resolve request.
   static std::string unparse(const CompletionItem &P);
+};
+
+struct DocumentReferenceParams : TextDocumentPositionParams {
+  ReferenceContext context;
+
+  static llvm::Optional<DocumentReferenceParams> parse(llvm::yaml::MappingNode *Params);
 };
 
 } // namespace clangd

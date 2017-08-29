@@ -42,6 +42,8 @@ public:
                                           StringRef ID, JSONOutput &Out) = 0;
   virtual void onDocumentRangeFormatting(DocumentRangeFormattingParams Params,
                                          StringRef ID, JSONOutput &Out) = 0;
+  virtual void onDocumentReferences(DocumentReferenceParams Params,
+                                    StringRef ID, JSONOutput &Out) = 0;
   virtual void onCodeAction(CodeActionParams Params, StringRef ID,
                             JSONOutput &Out) = 0;
   virtual void onCompletion(TextDocumentPositionParams Params, StringRef ID,

@@ -63,6 +63,8 @@ public:
                                   StringRef ID, JSONOutput &Out) override;
   void onDocumentRangeFormatting(DocumentRangeFormattingParams Params,
                                  StringRef ID, JSONOutput &Out) override;
+  void onDocumentReferences(DocumentReferenceParams Params,
+                            StringRef ID, JSONOutput &Out) override;
   void onDocumentFormatting(DocumentFormattingParams Params, StringRef ID,
                             JSONOutput &Out) override;
   void onCodeAction(CodeActionParams Params, StringRef ID,
@@ -87,7 +89,8 @@ void ClangdLSPServer::LSPProtocolCallbacks::onInitialize(StringRef ID,
           "documentOnTypeFormattingProvider": {"firstTriggerCharacter":"}","moreTriggerCharacter":[]},
           "codeActionProvider": true,
           "completionProvider": {"resolveProvider": false, "triggerCharacters": [".",">",":"]},
-          "definitionProvider": true
+          "definitionProvider": true,
+          "referencesProvider": true
         }}})");
 }
 
@@ -136,6 +139,28 @@ void ClangdLSPServer::LSPProtocolCallbacks::onDocumentRangeFormatting(
 
   Out.writeMessage(R"({"jsonrpc":"2.0","id":)" + ID.str() +
                    R"(,"result":[)" + Edits + R"(]})");
+}
+
+void ClangdLSPServer::LSPProtocolCallbacks::onDocumentReferences(
+    DocumentReferenceParams Params, StringRef ID, JSONOutput &Out) {
+
+  auto Items = LangServer.Server
+                   .findReferences(Params.textDocument.uri.file,
+                                    Position{Params.position.line,
+                                             Params.position.character},
+                                    Params.context.includeDeclaration)
+                   .Value;
+
+  std::string Locations;
+  for (const auto &Item : Items) {
+    Locations += Location::unparse(Item);
+    Locations += ",";
+  }
+  if (!Locations.empty())
+    Locations.pop_back();
+  Out.writeMessage(
+      R"({"jsonrpc":"2.0","id":)" + ID.str() +
+      R"(,"result":[)" + Locations + R"(]})");
 }
 
 void ClangdLSPServer::LSPProtocolCallbacks::onDocumentFormatting(

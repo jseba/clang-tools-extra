@@ -614,6 +614,28 @@ std::vector<Location> clangd::findDefinitions(ParsedAST &AST, Position Pos) {
   return DeclLocationsFinder->takeLocations();
 }
 
+std::vector<Location> clangd::findReferences(ParsedAST &AST, Position Pos/*, IncludeDefinition*/) {
+  const SourceManager &SourceMgr = AST.getASTContext().getSourceManager();
+  const FileEntry *FE = SourceMgr.getFileEntryForID(SourceMgr.getMainFileID());
+  if (!FE)
+    return {};
+
+  SourceLocation SourceLocationBeg = getBeginningOfIdentifier(AST, Pos, FE);
+
+  auto DeclLocationsFinder = std::make_shared<DeclarationLocationsFinder>(
+      llvm::errs(), SourceLocationBeg, AST.getASTContext(),
+      AST.getPreprocessor());
+  index::IndexingOptions IndexOpts;
+  IndexOpts.SystemSymbolFilter =
+      index::IndexingOptions::SystemSymbolFilterKind::All;
+  IndexOpts.IndexFunctionLocals = true;
+
+  indexTopLevelDecls(AST.getASTContext(), AST.getTopLevelDecls(),
+                     DeclLocationsFinder, IndexOpts);
+
+  return DeclLocationsFinder->takeLocations();
+}
+
 void ParsedAST::ensurePreambleDeclsDeserialized() {
   if (PendingTopLevelDecls.empty())
     return;
